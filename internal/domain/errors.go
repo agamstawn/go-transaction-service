@@ -30,4 +30,8 @@ var (
 	ErrInsufficientFunds = errors.New(
 		"insufficient funds",
 	)
+
+	ErrInvalidIdempotencyKey = errors.New(
+		"invalid idempotency key",
+	)
 )
