@@ -34,4 +34,8 @@ var (
 	ErrInvalidIdempotencyKey = errors.New(
 		"invalid idempotency key",
 	)
+
+	ErrIdempotencyConflict = errors.New(
+		"idempotency key already used for a different transfer",
+	)
 )
