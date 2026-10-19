@@ -26,4 +26,8 @@ var (
 	ErrNegativeBalance = errors.New(
 		"account balance cannot be negative",
 	)
+
+	ErrInsufficientFunds = errors.New(
+		"insufficient funds",
+	)
 )
