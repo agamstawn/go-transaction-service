@@ -575,6 +575,14 @@ func TestTransferProcessorIdempotentReplay(t *testing.T) {
 			got,
 		)
 	}
+
+	if first.Replayed {
+		t.Error("first transfer must not be marked as replayed")
+	}
+
+	if !second.Replayed {
+		t.Error("second transfer must be marked as replayed")
+	}
 }
 
 func TestTransferProcessorIdempotencyConflict(t *testing.T) {

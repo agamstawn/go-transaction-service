@@ -63,6 +63,7 @@ func TestAccountRouteAPIKeyProtection(t *testing.T) {
 
 			router := newAppRouter(
 				reader,
+				&stubTransferExecutor{},
 				"local-test-secret",
 			)
 
@@ -105,7 +106,11 @@ func TestAccountRouteAPIKeyProtection(t *testing.T) {
 func TestAccountRouteRejectsMissingServerAPIKey(t *testing.T) {
 	reader := &stubAccountReader{}
 
-	router := newAppRouter(reader, "")
+	router := newAppRouter(
+		reader,
+		&stubTransferExecutor{},
+		"",
+	)
 
 	request := httptest.NewRequest(
 		http.MethodGet,
@@ -136,6 +141,7 @@ func TestAppRouterHealthCheck(t *testing.T) {
 
 	router := newAppRouter(
 		reader,
+		&stubTransferExecutor{},
 		"local-test-secret",
 	)
 
@@ -162,6 +168,7 @@ func TestAccountRouteRejectsDuplicateAPIKeys(t *testing.T) {
 
 	router := newAppRouter(
 		reader,
+		&stubTransferExecutor{},
 		"local-test-secret",
 	)
 

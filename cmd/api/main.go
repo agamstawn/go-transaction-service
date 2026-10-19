@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/agam-vs/go-transaction-service/internal/postgres"
+	"github.com/agam-vs/go-transaction-service/internal/service"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -66,9 +67,18 @@ func main() {
 	// 5. Initialize application dependencies.
 	accountRepository := postgres.NewAccountRepository(db)
 
+	// Initialize PostgreSQL transfer processor.
+	transferProcessor := postgres.NewTransferProcessor(db)
+
+	// Inject the processor into the transfer service.
+	transferService := service.NewTransferService(
+		transferProcessor,
+	)
+
 	// 6. Configure HTTP routes and authentication.
 	router := newAppRouter(
 		accountRepository,
+		transferService,
 		cfg.APIKey,
 	)
 

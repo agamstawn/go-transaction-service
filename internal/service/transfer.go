@@ -13,6 +13,7 @@ type TransferResult struct {
 	ToAccountID   int64  `json:"to_account_id"`
 	Amount        int64  `json:"amount"`
 	Status        string `json:"status"`
+	Replayed      bool   `json:"-"`
 }
 
 // TransferProcessor defines how a transfer is processed.

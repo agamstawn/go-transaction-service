@@ -127,6 +127,8 @@ func (p *TransferProcessor) ExecuteTransfer(
 					fmt.Errorf("commit idempotent replay: %w", err)
 			}
 
+			existing.Replayed = true
+
 			return existing, nil
 
 		case errors.Is(err, sql.ErrNoRows):

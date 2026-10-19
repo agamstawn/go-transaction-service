@@ -11,22 +11,32 @@ import (
 // newAppRouter configures the application HTTP routes.
 func newAppRouter(
 	accountReader httpapi.AccountReader,
+	transferExecutor httpapi.TransferExecutor,
 	apiKey string,
 ) http.Handler {
 	mux := http.NewServeMux()
 
-	// Preserve the existing health check.
+	// Public health check.
 	mux.Handle(
 		"GET /healthz",
 		newRouter(),
 	)
 
-	// Protect account details with API key authentication.
+	// Protected account details endpoint.
 	mux.Handle(
 		"GET /v1/accounts/{id}",
 		apiKeyMiddleware(
 			apiKey,
 			httpapi.NewAccountHandler(accountReader),
+		),
+	)
+
+	// Protected transfer creation endpoint.
+	mux.Handle(
+		"POST /v1/transfers",
+		apiKeyMiddleware(
+			apiKey,
+			httpapi.NewTransferHandler(transferExecutor),
 		),
 	)
 
