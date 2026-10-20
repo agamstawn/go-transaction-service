@@ -20,14 +20,14 @@ A REST API built with **Go and PostgreSQL** to demonstrate reliable transaction 
 
 | Component | Technology |
 | --- | --- |
-| Language / HTTP | Go 1.23+; standard-library `net/http` |
+| Language / HTTP | Go 1.25+; standard-library `net/http` |
 | Database | PostgreSQL 17 |
 | SQL driver | `github.com/jackc/pgx/v5` via `database/sql` |
 | Tests | Go `testing`, `httptest`, race detector |
 | Containers | Docker, Docker Compose, multi-stage Distroless runtime |
 | CI definition | GitHub Actions (`.github/workflows/ci.yml`) |
 
-The `go.mod` file declares Go 1.23.0. The current Docker build and CI configuration use Go 1.26.
+The `go.mod` file declares Go 1.25.0. Docker builds and CI use Go 1.26.
 
 ## Architecture
 
@@ -141,7 +141,7 @@ Never commit actual secrets or a populated `.env` file. The credentials shown be
 
 ## Local setup
 
-**Prerequisites:** Go 1.23 or newer, Docker with Compose, and a terminal. The commands below assume the repository root.
+**Prerequisites:** Go 1.25 or newer, Docker with Compose, and a terminal. The commands below assume the repository root.
 
 ### 1. Start PostgreSQL
 
