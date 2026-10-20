@@ -30,12 +30,6 @@ func loadConfig(
 		listenAddress = "127.0.0.1:8080"
 	}
 
-	if getenv == nil {
-		return config{}, errors.New(
-			"configuration source is required",
-		)
-	}
-
 	databaseURL := getenv("DATABASE_URL")
 	apiKey := getenv("API_KEY")
 
