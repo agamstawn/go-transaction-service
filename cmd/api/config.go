@@ -18,6 +18,12 @@ type config struct {
 func loadConfig(
 	getenv func(string) string,
 ) (config, error) {
+	if getenv == nil {
+		return config{}, errors.New(
+			"configuration source is required",
+		)
+	}
+
 	listenAddress := strings.TrimSpace(getenv("LISTEN_ADDRESS"))
 
 	if listenAddress == "" {

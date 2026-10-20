@@ -130,3 +130,18 @@ func TestLoadConfigCustomListenAddress(t *testing.T) {
 		)
 	}
 }
+
+func TestLoadConfigRejectsNilGetter(t *testing.T) {
+	cfg, err := loadConfig(nil)
+
+	if err == nil {
+		t.Fatal("expected an error for nil environment getter")
+	}
+
+	if cfg != (config{}) {
+		t.Errorf(
+			"config = %+v, want zero-value config",
+			cfg,
+		)
+	}
+}
