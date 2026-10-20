@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Go Tests and PostgreSQL Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17
+
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: transactions_test
+
+        ports:
+          - 5432:5432
+
+        options: >-
+          --health-cmd "pg_isready -U app -d transactions_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgres://app:ci-only-password@127.0.0.1:5432/transactions_test?sslmode=disable
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: "1.26"
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Verify Go dependencies
+        run: go mod verify
+
+      - name: Check Go formatting
+        shell: bash
+        run: |
+          unformatted="$(git ls-files -z '*.go' | xargs -0 -r gofmt -l)"
+
+          if [ -n "$unformatted" ]; then
+            echo "Unformatted Go files:"
+            printf '%s\n' "$unformatted"
+            exit 1
+          fi
+
+      - name: Apply database migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for migration in migrations/*.sql; do
+            echo "Applying $migration"
+
+            docker exec -i "${{ job.services.postgres.id }}" \
+              psql -X -v ON_ERROR_STOP=1 \
+              -U app \
+              -d transactions_test \
+              < "$migration"
+          done
+
+      - name: Run unit tests
+        run: go test -count=1 ./...
+
+      - name: Run integration and E2E tests with race detector
+        run: go test -race -tags=integration -count=1 ./...
+
+      - name: Run static analysis
+        run: go vet -tags=integration ./...
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --pull \
+            --tag go-transaction-service:ci \
+            .
