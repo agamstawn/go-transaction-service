@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 )
 
@@ -9,6 +10,7 @@ import (
 type config struct {
 	DatabaseURL   string
 	APIKey        string
+	APIAccountID  int64
 	ListenAddress string
 }
 
@@ -33,6 +35,18 @@ func loadConfig(
 		)
 	}
 
+	accountID, err := strconv.ParseInt(
+		strings.TrimSpace(getenv("API_ACCOUNT_ID")),
+		10,
+		64,
+	)
+
+	if err != nil || accountID <= 0 {
+		return config{}, errors.New(
+			"API_ACCOUNT_ID must be a positive integer",
+		)
+	}
+
 	// Require an API key to protect private endpoints.
 	if strings.TrimSpace(apiKey) == "" {
 		return config{}, errors.New(
@@ -43,6 +57,8 @@ func loadConfig(
 	return config{
 		DatabaseURL:   databaseURL,
 		APIKey:        apiKey,
+		APIAccountID:  accountID,
 		ListenAddress: "127.0.0.1:8080",
 	}, nil
+
 }

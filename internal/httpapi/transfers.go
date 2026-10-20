@@ -231,6 +231,12 @@ func writeTransferError(
 			http.StatusNotFound,
 			"account not found",
 		)
+	case errors.Is(err, domain.ErrAccountForbidden):
+		writeJSONError(
+			w,
+			http.StatusForbidden,
+			"account access forbidden",
+		)
 
 	default:
 		writeJSONError(

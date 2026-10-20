@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -78,6 +79,7 @@ func TestTransferRouteAPIKeyProtection(t *testing.T) {
 				&stubAccountReader{},
 				executor,
 				"local-test-secret",
+				1,
 			)
 
 			body := `{
@@ -139,6 +141,103 @@ func TestTransferRouteAPIKeyProtection(t *testing.T) {
 				if recorder.Header().Get("Idempotent-Replayed") != "true" {
 					t.Error("missing replay response header")
 				}
+			}
+		})
+	}
+}
+
+func TestTransferRouteAuthorization(t *testing.T) {
+	tests := []struct {
+		name          string
+		fromAccountID int64
+		toAccountID   int64
+		wantStatus    int
+		wantCalls     int
+	}{
+		{
+			name:          "authorized sender",
+			fromAccountID: 7,
+			toAccountID:   8,
+			wantStatus:    http.StatusCreated,
+			wantCalls:     1,
+		},
+		{
+			name:          "unauthorized sender",
+			fromAccountID: 8,
+			toAccountID:   7,
+			wantStatus:    http.StatusForbidden,
+			wantCalls:     0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			executor := &stubTransferExecutor{
+				result: service.TransferResult{
+					ID:            100,
+					FromAccountID: tt.fromAccountID,
+					ToAccountID:   tt.toAccountID,
+					Amount:        125_000,
+					Status:        "completed",
+				},
+			}
+
+			router := newAppRouter(
+				&stubAccountReader{},
+				executor,
+				"local-test-secret",
+				7,
+			)
+
+			body := fmt.Sprintf(
+				`{
+					"from_account_id": %d,
+					"to_account_id": %d,
+					"amount": 125000
+				}`,
+				tt.fromAccountID,
+				tt.toAccountID,
+			)
+
+			request := httptest.NewRequest(
+				http.MethodPost,
+				"/v1/transfers",
+				strings.NewReader(body),
+			)
+
+			request.Header.Set(
+				"Content-Type",
+				"application/json",
+			)
+
+			request.Header.Set(
+				"X-API-Key",
+				"local-test-secret",
+			)
+
+			request.Header.Set(
+				"Idempotency-Key",
+				"authorization-test-001",
+			)
+
+			recorder := httptest.NewRecorder()
+
+			router.ServeHTTP(recorder, request)
+
+			if recorder.Code != tt.wantStatus {
+				t.Errorf(
+					"status = %d, want %d",
+					recorder.Code,
+					tt.wantStatus,
+				)
+			}
+
+			if executor.calls != tt.wantCalls {
+				t.Errorf(
+					"transfer calls = %d, want %d",
+					executor.calls,
+					tt.wantCalls,
+				)
 			}
 		})
 	}

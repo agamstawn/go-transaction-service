@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"net/http"
 
+	"github.com/agam-vs/go-transaction-service/internal/domain"
 	"github.com/agam-vs/go-transaction-service/internal/httpapi"
+	"github.com/agam-vs/go-transaction-service/internal/service"
 )
 
 // newAppRouter configures the application HTTP routes.
@@ -13,34 +16,67 @@ func newAppRouter(
 	accountReader httpapi.AccountReader,
 	transferExecutor httpapi.TransferExecutor,
 	apiKey string,
+	authorizedAccountID int64,
 ) http.Handler {
+
 	mux := http.NewServeMux()
 
-	// Public health check.
+	// Public health endpoint.
 	mux.Handle(
 		"GET /healthz",
 		newRouter(),
 	)
 
-	// Protected account details endpoint.
+	// Apply account authorization.
+	protectedAccountReader := scopedAccountReader{
+		reader:              accountReader,
+		authorizedAccountID: authorizedAccountID,
+	}
+
+	// Apply transfer authorization.
+	protectedTransferExecutor := scopedTransferExecutor{
+		executor:            transferExecutor,
+		authorizedAccountID: authorizedAccountID,
+	}
+
+	// Protected account endpoint.
 	mux.Handle(
 		"GET /v1/accounts/{id}",
 		apiKeyMiddleware(
 			apiKey,
-			httpapi.NewAccountHandler(accountReader),
+			httpapi.NewAccountHandler(protectedAccountReader),
 		),
 	)
 
-	// Protected transfer creation endpoint.
+	// Protected transfer endpoint.
 	mux.Handle(
 		"POST /v1/transfers",
 		apiKeyMiddleware(
 			apiKey,
-			httpapi.NewTransferHandler(transferExecutor),
+			httpapi.NewTransferHandler(protectedTransferExecutor),
 		),
 	)
 
 	return mux
+}
+
+// scopedAccountReader restricts account access to the configured account.
+type scopedAccountReader struct {
+	reader              httpapi.AccountReader
+	authorizedAccountID int64
+}
+
+func (s scopedAccountReader) GetByID(
+	ctx context.Context,
+	id int64,
+) (domain.Account, error) {
+
+	if s.authorizedAccountID <= 0 ||
+		id != s.authorizedAccountID {
+		return domain.Account{}, domain.ErrAccountForbidden
+	}
+
+	return s.reader.GetByID(ctx, id)
 }
 
 // apiKeyMiddleware protects routes that require an API key.
@@ -109,4 +145,23 @@ func writeAuthError(
 			"error": message,
 		},
 	)
+}
+
+// scopedTransferExecutor restricts the source account of a transfer.
+type scopedTransferExecutor struct {
+	executor            httpapi.TransferExecutor
+	authorizedAccountID int64
+}
+
+func (s scopedTransferExecutor) Transfer(
+	ctx context.Context,
+	input domain.TransferInput,
+) (service.TransferResult, error) {
+
+	if s.authorizedAccountID <= 0 ||
+		input.FromAccountID != s.authorizedAccountID {
+		return service.TransferResult{}, domain.ErrAccountForbidden
+	}
+
+	return s.executor.Transfer(ctx, input)
 }

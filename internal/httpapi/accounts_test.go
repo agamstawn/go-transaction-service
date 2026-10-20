@@ -189,3 +189,36 @@ func TestAccountHandlerInternalError(t *testing.T) {
 		t.Error("internal database error leaked to client")
 	}
 }
+
+func TestAccountHandlerForbidden(t *testing.T) {
+	reader := &fakeAccountReader{
+		err: domain.ErrAccountForbidden,
+	}
+
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/v1/accounts/8",
+		nil,
+	)
+
+	recorder := httptest.NewRecorder()
+
+	newAccountTestRouter(reader).ServeHTTP(
+		recorder,
+		request,
+	)
+
+	if recorder.Code != http.StatusForbidden {
+		t.Errorf(
+			"status = %d, want 403",
+			recorder.Code,
+		)
+	}
+
+	if reader.calls != 1 {
+		t.Errorf(
+			"repository calls = %d, want 1",
+			reader.calls,
+		)
+	}
+}

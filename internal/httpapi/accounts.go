@@ -36,7 +36,7 @@ func (h *AccountHandler) ServeHTTP(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	// 1. Extract and validate account ID.
+	// Parse account ID.
 	id, err := strconv.ParseInt(
 		r.PathValue("id"),
 		10,
@@ -52,13 +52,24 @@ func (h *AccountHandler) ServeHTTP(
 		return
 	}
 
-	// 2. Retrieve account using the repository.
+	// Retrieve account.
 	account, err := h.repository.GetByID(
 		r.Context(),
 		id,
 	)
 
 	if err != nil {
+		// Authorization failure.
+		if errors.Is(err, domain.ErrAccountForbidden) {
+			writeJSONError(
+				w,
+				http.StatusForbidden,
+				"account access forbidden",
+			)
+			return
+		}
+
+		// Account not found.
 		if errors.Is(err, sql.ErrNoRows) {
 			writeJSONError(
 				w,
@@ -68,7 +79,7 @@ func (h *AccountHandler) ServeHTTP(
 			return
 		}
 
-		// Never expose internal database errors.
+		// Unexpected internal error.
 		writeJSONError(
 			w,
 			http.StatusInternalServerError,
@@ -77,7 +88,7 @@ func (h *AccountHandler) ServeHTTP(
 		return
 	}
 
-	// 3. Return account as JSON.
+	// Successful response.
 	w.Header().Set(
 		"Content-Type",
 		"application/json",

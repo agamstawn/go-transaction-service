@@ -11,8 +11,9 @@ func TestLoadConfig(t *testing.T) {
 		{
 			name: "valid configuration",
 			env: map[string]string{
-				"DATABASE_URL": "postgres://localhost/test",
-				"API_KEY":      "local-test-secret",
+				"DATABASE_URL":   "postgres://localhost/test",
+				"API_KEY":        "local-test-secret",
+				"API_ACCOUNT_ID": "7",
 			},
 		},
 		{
@@ -32,6 +33,32 @@ func TestLoadConfig(t *testing.T) {
 		{
 			name:    "missing all configuration",
 			env:     map[string]string{},
+			wantErr: true,
+		},
+		{
+			name: "missing account scope",
+			env: map[string]string{
+				"DATABASE_URL": "postgres://localhost/test",
+				"API_KEY":      "local-test-secret",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid account scope",
+			env: map[string]string{
+				"DATABASE_URL":   "postgres://localhost/test",
+				"API_KEY":        "local-test-secret",
+				"API_ACCOUNT_ID": "abc",
+			},
+			wantErr: true,
+		},
+		{
+			name: "zero account scope",
+			env: map[string]string{
+				"DATABASE_URL":   "postgres://localhost/test",
+				"API_KEY":        "local-test-secret",
+				"API_ACCOUNT_ID": "0",
+			},
 			wantErr: true,
 		},
 	}
@@ -67,6 +94,13 @@ func TestLoadConfig(t *testing.T) {
 				t.Errorf(
 					"listen address = %s, want 127.0.0.1:8080",
 					config.ListenAddress,
+				)
+			}
+
+			if config.APIAccountID != 7 {
+				t.Errorf(
+					"APIAccountID = %d, want 7",
+					config.APIAccountID,
 				)
 			}
 		})

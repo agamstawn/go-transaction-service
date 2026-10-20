@@ -80,6 +80,7 @@ func main() {
 		accountRepository,
 		transferService,
 		cfg.APIKey,
+		cfg.APIAccountID,
 	)
 
 	// 7. Initialize the HTTP server.

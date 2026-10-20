@@ -38,4 +38,8 @@ var (
 	ErrIdempotencyConflict = errors.New(
 		"idempotency key already used for a different transfer",
 	)
+
+	ErrAccountForbidden = errors.New(
+		"account access forbidden",
+	)
 )

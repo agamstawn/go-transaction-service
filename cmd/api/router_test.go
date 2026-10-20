@@ -65,6 +65,7 @@ func TestAccountRouteAPIKeyProtection(t *testing.T) {
 				reader,
 				&stubTransferExecutor{},
 				"local-test-secret",
+				7,
 			)
 
 			request := httptest.NewRequest(
@@ -110,6 +111,7 @@ func TestAccountRouteRejectsMissingServerAPIKey(t *testing.T) {
 		reader,
 		&stubTransferExecutor{},
 		"",
+		7,
 	)
 
 	request := httptest.NewRequest(
@@ -143,6 +145,7 @@ func TestAppRouterHealthCheck(t *testing.T) {
 		reader,
 		&stubTransferExecutor{},
 		"local-test-secret",
+		7,
 	)
 
 	request := httptest.NewRequest(
@@ -170,6 +173,7 @@ func TestAccountRouteRejectsDuplicateAPIKeys(t *testing.T) {
 		reader,
 		&stubTransferExecutor{},
 		"local-test-secret",
+		7,
 	)
 
 	request := httptest.NewRequest(
@@ -201,5 +205,78 @@ func TestAccountRouteRejectsDuplicateAPIKeys(t *testing.T) {
 
 	if reader.calls != 0 {
 		t.Error("repository must not be called")
+	}
+}
+
+func TestAccountRouteAuthorization(t *testing.T) {
+	tests := []struct {
+		name       string
+		accountID  string
+		wantStatus int
+		wantCalls  int
+	}{
+		{
+			name:       "authorized account",
+			accountID:  "7",
+			wantStatus: http.StatusOK,
+			wantCalls:  1,
+		},
+		{
+			name:       "unauthorized account",
+			accountID:  "8",
+			wantStatus: http.StatusForbidden,
+			wantCalls:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := &stubAccountReader{
+				account: domain.Account{
+					ID:       7,
+					Number:   "10000007",
+					Currency: "IDR",
+					Balance:  375_000,
+				},
+			}
+
+			router := newAppRouter(
+				reader,
+				&stubTransferExecutor{},
+				"local-test-secret",
+				7,
+			)
+
+			request := httptest.NewRequest(
+				http.MethodGet,
+				"/v1/accounts/"+tt.accountID,
+				nil,
+			)
+
+			request.Header.Set(
+				"X-API-Key",
+				"local-test-secret",
+			)
+
+			recorder := httptest.NewRecorder()
+
+			router.ServeHTTP(recorder, request)
+
+			if recorder.Code != tt.wantStatus {
+				t.Errorf(
+					"status = %d, want %d",
+					recorder.Code,
+					tt.wantStatus,
+				)
+			}
+
+			if reader.calls != tt.wantCalls {
+				t.Errorf(
+					"repository calls = %d, want %d",
+					reader.calls,
+					tt.wantCalls,
+				)
+			}
+		})
 	}
 }
