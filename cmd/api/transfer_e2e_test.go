@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agam-vs/go-transaction-service/internal/postgres"
-	"github.com/agam-vs/go-transaction-service/internal/service"
+	"github.com/agamstawn/go-transaction-service/internal/postgres"
+	"github.com/agamstawn/go-transaction-service/internal/service"
 )
 
 func TestRouterPostgresE2EHarness(t *testing.T) {

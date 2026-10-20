@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/agam-vs/go-transaction-service/internal/service"
+	"github.com/agamstawn/go-transaction-service/internal/service"
 )
 
 type stubTransferReader struct {

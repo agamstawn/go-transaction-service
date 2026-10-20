@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/agam-vs/go-transaction-service/internal/postgres"
-	"github.com/agam-vs/go-transaction-service/internal/service"
+	"github.com/agamstawn/go-transaction-service/internal/postgres"
+	"github.com/agamstawn/go-transaction-service/internal/service"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 

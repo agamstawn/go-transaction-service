@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/agam-vs/go-transaction-service/internal/domain"
+	"github.com/agamstawn/go-transaction-service/internal/domain"
 )
 
 // TransferResult represents a completed transfer.

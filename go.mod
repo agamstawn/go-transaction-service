@@ -1,4 +1,4 @@
-module github.com/agam-vs/go-transaction-service
+module github.com/agamstawn/go-transaction-service
 
 go 1.25.0
 

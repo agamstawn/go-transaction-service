@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/agam-vs/go-transaction-service/internal/service"
+	"github.com/agamstawn/go-transaction-service/internal/service"
 )
 
 const (

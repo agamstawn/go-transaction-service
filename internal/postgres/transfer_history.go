@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/agam-vs/go-transaction-service/internal/service"
+	"github.com/agamstawn/go-transaction-service/internal/service"
 )
 
 const maxHistoryPageSize = 100

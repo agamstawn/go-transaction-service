@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/agam-vs/go-transaction-service/internal/domain"
+	"github.com/agamstawn/go-transaction-service/internal/domain"
 )
 
 type fakeAccountReader struct {

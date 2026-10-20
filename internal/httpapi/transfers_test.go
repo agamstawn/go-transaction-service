@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/agam-vs/go-transaction-service/internal/domain"
-	"github.com/agam-vs/go-transaction-service/internal/service"
+	"github.com/agamstawn/go-transaction-service/internal/domain"
+	"github.com/agamstawn/go-transaction-service/internal/service"
 )
 
 type fakeTransferExecutor struct {

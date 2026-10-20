@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agam-vs/go-transaction-service/internal/domain"
+	"github.com/agamstawn/go-transaction-service/internal/domain"
 )
 
 func createTestAccount(

@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/agam-vs/go-transaction-service/internal/domain"
-	"github.com/agam-vs/go-transaction-service/internal/httpapi"
-	"github.com/agam-vs/go-transaction-service/internal/service"
+	"github.com/agamstawn/go-transaction-service/internal/domain"
+	"github.com/agamstawn/go-transaction-service/internal/httpapi"
+	"github.com/agamstawn/go-transaction-service/internal/service"
 )
 
 // newAppRouter configures the application HTTP routes.

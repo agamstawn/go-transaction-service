@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/agam-vs/go-transaction-service/internal/domain"
+	"github.com/agamstawn/go-transaction-service/internal/domain"
 )
 
 // AccountReader defines the behavior required to retrieve accounts.
