@@ -11,15 +11,6 @@ import (
 
 const maxHistoryPageSize = 100
 
-// TransferPage represents a paginated transfer history result.
-type TransferPage struct {
-	Data       []service.TransferResult
-	Page       int
-	PerPage    int
-	Total      int64
-	TotalPages int64
-}
-
 // ListByAccount returns transfers involving the authorized account.
 func (r *TransferRepository) ListByAccount(
 	ctx context.Context,
