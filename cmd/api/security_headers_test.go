@@ -34,6 +34,7 @@ func TestProtectedRoutesSecurityHeaders(t *testing.T) {
 		reader,
 		executor,
 		&stubTransferReader{},
+		&routerHistoryReaderStub{},
 		"local-test-secret",
 		7,
 	)

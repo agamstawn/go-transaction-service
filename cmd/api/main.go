@@ -82,6 +82,7 @@ func main() {
 		accountRepository,
 		transferService,
 		transferRepository,
+		transferRepository,
 		cfg.APIKey,
 		cfg.APIAccountID,
 	)

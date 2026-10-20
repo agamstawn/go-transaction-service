@@ -79,6 +79,7 @@ func TestTransferRouteAPIKeyProtection(t *testing.T) {
 				&stubAccountReader{},
 				executor,
 				&stubTransferReader{},
+				&routerHistoryReaderStub{},
 				"local-test-secret",
 				1,
 			)
@@ -187,6 +188,7 @@ func TestTransferRouteAuthorization(t *testing.T) {
 				&stubAccountReader{},
 				executor,
 				&stubTransferReader{},
+				&routerHistoryReaderStub{},
 				"local-test-secret",
 				7,
 			)

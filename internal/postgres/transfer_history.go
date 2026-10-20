@@ -26,25 +26,25 @@ func (r *TransferRepository) ListByAccount(
 	authorizedAccountID int64,
 	page int,
 	perPage int,
-) (TransferPage, error) {
+) (service.TransferPage, error) {
 
 	// 1. Validate the account scope.
 	if authorizedAccountID <= 0 {
-		return TransferPage{}, fmt.Errorf(
+		return service.TransferPage{}, fmt.Errorf(
 			"invalid authorized account ID",
 		)
 	}
 
 	// 2. Validate pagination parameters.
 	if page < 1 || perPage < 1 || perPage > maxHistoryPageSize {
-		return TransferPage{}, fmt.Errorf(
+		return service.TransferPage{}, fmt.Errorf(
 			"invalid pagination parameters",
 		)
 	}
 
 	// 3. Calculate OFFSET safely.
 	if int64(page-1) > math.MaxInt64/int64(perPage) {
-		return TransferPage{}, fmt.Errorf(
+		return service.TransferPage{}, fmt.Errorf(
 			"pagination offset overflow",
 		)
 	}
@@ -61,7 +61,7 @@ func (r *TransferRepository) ListByAccount(
 	)
 
 	if err != nil {
-		return TransferPage{}, fmt.Errorf(
+		return service.TransferPage{}, fmt.Errorf(
 			"begin history query: %w",
 			err,
 		)
@@ -82,7 +82,7 @@ func (r *TransferRepository) ListByAccount(
 	).Scan(&total)
 
 	if err != nil {
-		return TransferPage{}, fmt.Errorf(
+		return service.TransferPage{}, fmt.Errorf(
 			"count transfers: %w",
 			err,
 		)
@@ -108,7 +108,7 @@ func (r *TransferRepository) ListByAccount(
 	)
 
 	if err != nil {
-		return TransferPage{}, fmt.Errorf(
+		return service.TransferPage{}, fmt.Errorf(
 			"list transfers: %w",
 			err,
 		)
@@ -131,7 +131,7 @@ func (r *TransferRepository) ListByAccount(
 		if err != nil {
 			_ = rows.Close()
 
-			return TransferPage{}, fmt.Errorf(
+			return service.TransferPage{}, fmt.Errorf(
 				"scan transfer: %w",
 				err,
 			)
@@ -143,14 +143,14 @@ func (r *TransferRepository) ListByAccount(
 	if err := rows.Err(); err != nil {
 		_ = rows.Close()
 
-		return TransferPage{}, fmt.Errorf(
+		return service.TransferPage{}, fmt.Errorf(
 			"iterate transfers: %w",
 			err,
 		)
 	}
 
 	if err := rows.Close(); err != nil {
-		return TransferPage{}, fmt.Errorf(
+		return service.TransferPage{}, fmt.Errorf(
 			"close transfer rows: %w",
 			err,
 		)
@@ -158,7 +158,7 @@ func (r *TransferRepository) ListByAccount(
 
 	// 8. Complete the read-only transaction.
 	if err := tx.Commit(); err != nil {
-		return TransferPage{}, fmt.Errorf(
+		return service.TransferPage{}, fmt.Errorf(
 			"commit history query: %w",
 			err,
 		)
@@ -171,7 +171,7 @@ func (r *TransferRepository) ListByAccount(
 		totalPages++
 	}
 
-	return TransferPage{
+	return service.TransferPage{
 		Data:       transfers,
 		Page:       page,
 		PerPage:    perPage,

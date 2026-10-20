@@ -93,6 +93,7 @@ func TestTransferDetailsRoute(t *testing.T) {
 				&stubAccountReader{},
 				&stubTransferExecutor{},
 				reader,
+				&routerHistoryReaderStub{},
 				"local-test-secret",
 				7,
 			)

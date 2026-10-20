@@ -65,6 +65,7 @@ func TestAccountRouteAPIKeyProtection(t *testing.T) {
 				reader,
 				&stubTransferExecutor{},
 				&stubTransferReader{},
+				&routerHistoryReaderStub{},
 				"local-test-secret",
 				7,
 			)
@@ -112,6 +113,7 @@ func TestAccountRouteRejectsMissingServerAPIKey(t *testing.T) {
 		reader,
 		&stubTransferExecutor{},
 		&stubTransferReader{},
+		&routerHistoryReaderStub{},
 		"local-test-secret",
 		7,
 	)
@@ -147,6 +149,7 @@ func TestAppRouterHealthCheck(t *testing.T) {
 		reader,
 		&stubTransferExecutor{},
 		&stubTransferReader{},
+		&routerHistoryReaderStub{},
 		"local-test-secret",
 		7,
 	)
@@ -176,6 +179,7 @@ func TestAccountRouteRejectsDuplicateAPIKeys(t *testing.T) {
 		reader,
 		&stubTransferExecutor{},
 		&stubTransferReader{},
+		&routerHistoryReaderStub{},
 		"local-test-secret",
 		7,
 	)
@@ -248,6 +252,7 @@ func TestAccountRouteAuthorization(t *testing.T) {
 				reader,
 				&stubTransferExecutor{},
 				&stubTransferReader{},
+				&routerHistoryReaderStub{},
 				"local-test-secret",
 				7,
 			)

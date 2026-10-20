@@ -12,11 +12,12 @@ import (
 )
 
 // newAppRouter configures the application HTTP routes.
-// newAppRouter configures the application HTTP routes.
+
 func newAppRouter(
 	accountReader httpapi.AccountReader,
 	transferExecutor httpapi.TransferExecutor,
 	transferReader httpapi.TransferReader,
+	historyReader httpapi.TransferHistoryReader,
 	apiKey string,
 	authorizedAccountID int64,
 ) http.Handler {
@@ -65,6 +66,17 @@ func newAppRouter(
 			apiKey,
 			httpapi.NewTransferDetailsHandler(
 				transferReader,
+				authorizedAccountID,
+			),
+		),
+	)
+
+	mux.Handle(
+		"GET /v1/transfers",
+		apiKeyMiddleware(
+			apiKey,
+			httpapi.NewTransferHistoryHandler(
+				historyReader,
 				authorizedAccountID,
 			),
 		),
