@@ -1,0 +1,5 @@
+# Reviewed false positives: README development API key examples.
+# The values are local-only demo credentials, not production secrets.
+ae1c75d92bd5d2e5bae9c1c5499c52d0627245ac:README.md:curl-auth-header:214
+ae1c75d92bd5d2e5bae9c1c5499c52d0627245ac:README.md:curl-auth-header:72
+ae1c75d92bd5d2e5bae9c1c5499c52d0627245ac:README.md:curl-auth-header:86
