@@ -1,0 +1,615 @@
+openapi: 3.1.0
+
+info:
+  title: Go Transaction Service API
+  version: 1.0.0
+  description: |-
+    Educational REST API for simulated financial transactions. This is a
+    portfolio project, not a production banking service; it does not move
+    real money.
+
+    **Account scope:** One configured API key is associated with one account
+    (`API_ACCOUNT_ID`). The account scope is determined by the server, never
+    by query-string or request-body account identifiers. Account reads are
+    limited to that account; transfers may be created only *from* that account;
+    transfer details and history include transfers where it is the sender or
+    recipient.
+
+    **Amounts and balances:** Represented as integers in the application's
+    IDR-denominated simulation. No floating-point amounts are accepted.
+
+    **Idempotency:** The `Idempotency-Key` header is required for transfer
+    creation. Repeating the same sender/key and payload returns the existing
+    transfer without a second debit. Reusing the key with different transfer
+    details returns HTTP 409.
+
+servers:
+  - url: http://127.0.0.1:8080
+    description: Local Go development server
+  - url: http://127.0.0.1:8081
+    description: Docker Compose published API port (loopback only)
+
+tags:
+  - name: Health
+    description: Public health endpoint.
+  - name: Accounts
+    description: Reads scoped to the configured account.
+  - name: Transfers
+    description: Atomic transfer creation and scoped transfer reads.
+
+# Protected operations inherit the API-key requirement. /healthz opts out.
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /healthz:
+    get:
+      tags: [Health]
+      operationId: getHealth
+      summary: Check HTTP service health
+      description: |-
+        Checks whether the HTTP server is responding. This endpoint does not
+        independently verify the current health of PostgreSQL.
+      security: []
+      responses:
+        '200':
+          description: HTTP service is running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+        '405':
+          description: HTTP method not allowed.
+
+  /v1/accounts/{id}:
+    get:
+      tags: [Accounts]
+      operationId: getAccount
+      summary: Retrieve the authorized account
+      description: |-
+        The requested ID must match the account ID configured for this API key.
+        Requests for a different account return HTTP 403. No account list or
+        multi-user authentication is implemented.
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: Account details for the configured account.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Content-Type-Options:
+              $ref: '#/components/headers/NoSniff'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+              example:
+                id: 7
+                number: '10000007'
+                currency: IDR
+                balance: 374000
+        '400':
+          $ref: '#/components/responses/InvalidAccountId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountForbidden'
+        '404':
+          $ref: '#/components/responses/AccountNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /v1/transfers:
+    post:
+      tags: [Transfers]
+      operationId: createTransfer
+      summary: Create an atomic transfer
+      description: |-
+        Creates an IDR-denominated simulated transfer with atomic debit and
+        credit operations. The configured account must be the sender.
+        Both account IDs must be positive and different, and the amount must
+        be a positive integer. Unknown JSON object fields and multiple JSON
+        values are rejected.
+
+        Provide exactly one `Idempotency-Key` header (1–128 ASCII characters:
+        letters, digits, `_`, `-`, `.`, or `:`). The key is not part of the
+        JSON body.
+
+        A new transfer returns 201. An identical replay returns 200 and
+        `Idempotent-Replayed: true`; the transfer ID and balances stay the same.
+        Reusing the same key with different transfer details returns 409.
+        The JSON body does not expose the internal replay flag.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        description: Exactly one JSON object. Request body size is limited to 64 KiB.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferInput'
+            example:
+              from_account_id: 7
+              to_account_id: 8
+              amount: 25000
+      responses:
+        '201':
+          description: Transfer created and completed.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Content-Type-Options:
+              $ref: '#/components/headers/NoSniff'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+              example:
+                id: 3
+                from_account_id: 7
+                to_account_id: 8
+                amount: 25000
+                status: completed
+        '200':
+          description: Identical request replayed; no additional transfer or debit.
+          headers:
+            Idempotent-Replayed:
+              description: Set to `true` for an idempotent replay.
+              schema:
+                type: string
+                enum: ['true']
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Content-Type-Options:
+              $ref: '#/components/headers/NoSniff'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+        '400':
+          $ref: '#/components/responses/InvalidTransferRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountForbidden'
+        '404':
+          $ref: '#/components/responses/AccountNotFound'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
+        '413':
+          $ref: '#/components/responses/RequestTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/InsufficientFunds'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+    get:
+      tags: [Transfers]
+      operationId: listTransfers
+      summary: List account-scoped transfer history
+      description: |-
+        Lists transfers where the configured account is either the sender or
+        recipient, newest first (`created_at DESC, id DESC`). The account
+        scope cannot be changed by the client. Results are paginated using
+        `page` and `per_page`. The maximum page size is 100. Invalid,
+        duplicate, or overflowing pagination values return HTTP 400.
+
+        Pagination uses LIMIT/OFFSET; pages requested at different times may
+        shift if new transfers are created between requests.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: A page of transfers; `data` is an empty array if none are found.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Content-Type-Options:
+              $ref: '#/components/headers/NoSniff'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferHistory'
+              example:
+                data:
+                  - id: 2
+                    from_account_id: 7
+                    to_account_id: 8
+                    amount: 1000
+                    status: completed
+                  - id: 1
+                    from_account_id: 7
+                    to_account_id: 8
+                    amount: 125000
+                    status: completed
+                pagination:
+                  page: 1
+                  per_page: 10
+                  total: 2
+                  total_pages: 1
+        '400':
+          $ref: '#/components/responses/InvalidPagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /v1/transfers/{id}:
+    get:
+      tags: [Transfers]
+      operationId: getTransfer
+      summary: Retrieve an account-scoped transfer
+      description: |-
+        Returns a transfer only when the configured account was its sender
+        or recipient. Returns the same HTTP 404 response for an unknown
+        transfer and one that is outside the account scope, to avoid
+        disclosing the existence of unrelated transactions.
+      parameters:
+        - $ref: '#/components/parameters/TransferId'
+      responses:
+        '200':
+          description: Visible transfer details.
+          headers:
+            Cache-Control:
+              $ref: '#/components/headers/NoStore'
+            X-Content-Type-Options:
+              $ref: '#/components/headers/NoSniff'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transfer'
+              example:
+                id: 1
+                from_account_id: 7
+                to_account_id: 8
+                amount: 125000
+                status: completed
+        '400':
+          $ref: '#/components/responses/InvalidTransferId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/TransferNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |-
+        A development API key configured by `API_KEY`. It is statically
+        scoped to the account configured by `API_ACCOUNT_ID`; it is not
+        OAuth, session authentication, or a per-user identity system.
+
+  headers:
+    NoStore:
+      description: Protected responses must not be cached.
+      schema:
+        type: string
+        enum: [no-store]
+    NoSniff:
+      description: Instructs browsers not to sniff the response content type.
+      schema:
+        type: string
+        enum: [nosniff]
+
+  parameters:
+    AccountId:
+      name: id
+      in: path
+      required: true
+      description: Positive ID of the account to retrieve.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 7
+    TransferId:
+      name: id
+      in: path
+      required: true
+      description: Positive transfer ID.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+      example: 1
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |-
+        Required unique request key within the sending account's scope.
+        Replays with the same key and transfer data return the prior result.
+        Reuse with different transfer data returns HTTP 409.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[A-Za-z0-9_.:-]+$'
+      example: transfer-demo-001
+    Page:
+      name: page
+      in: query
+      required: false
+      description: One-based page number. Must not produce an overflowing offset.
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      example: 1
+    PerPage:
+      name: per_page
+      in: query
+      required: false
+      description: Maximum number of transfers per page.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+      example: 10
+
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+
+    Account:
+      type: object
+      additionalProperties: false
+      required: [id, number, currency, balance]
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        number:
+          type: string
+          description: Account number. The API JSON field is `number`, not `account_number`.
+          minLength: 1
+          maxLength: 32
+        currency:
+          type: string
+          enum: [IDR]
+        balance:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Account balance in the application's IDR simulation.
+
+    TransferInput:
+      type: object
+      additionalProperties: false
+      required: [from_account_id, to_account_id, amount]
+      description: |-
+        Both account IDs must be positive and different. The sender must
+        equal the configured account. `Idempotency-Key` is supplied through
+        an HTTP header, not this JSON object.
+      properties:
+        from_account_id:
+          type: integer
+          format: int64
+          minimum: 1
+        to_account_id:
+          type: integer
+          format: int64
+          minimum: 1
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Positive simulated IDR amount (integer, not a floating point number).
+
+    Transfer:
+      type: object
+      additionalProperties: false
+      required: [id, from_account_id, to_account_id, amount, status]
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        from_account_id:
+          type: integer
+          format: int64
+          minimum: 1
+        to_account_id:
+          type: integer
+          format: int64
+          minimum: 1
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+        status:
+          type: string
+          description: The implemented transaction flow currently returns completed transfers.
+          enum: [completed]
+
+    Pagination:
+      type: object
+      additionalProperties: false
+      required: [page, per_page, total, total_pages]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+        total_pages:
+          type: integer
+          format: int64
+          minimum: 0
+
+    TransferHistory:
+      type: object
+      additionalProperties: false
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transfer'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+
+  responses:
+    InvalidAccountId:
+      description: Account ID must be a positive integer.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: invalid account ID
+    InvalidTransferId:
+      description: Transfer ID must be a positive integer.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: invalid transfer ID
+    InvalidTransferRequest:
+      description: |-
+        Invalid transfer, missing or invalid idempotency key, malformed JSON,
+        multiple JSON values, or unknown JSON fields.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: invalid transfer request
+    InvalidPagination:
+      description: Page or per-page value is invalid, repeated, or overflows.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: invalid pagination parameters
+    Unauthorized:
+      description: Missing, incorrect, or duplicate `X-API-Key` header.
+      headers:
+        Cache-Control:
+          $ref: '#/components/headers/NoStore'
+        X-Content-Type-Options:
+          $ref: '#/components/headers/NoSniff'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: unauthorized
+    AccountForbidden:
+      description: Account is outside the configured account scope.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: account access forbidden
+    AccountNotFound:
+      description: An account required for this operation does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: account not found
+    TransferNotFound:
+      description: Transfer does not exist or is outside the configured account scope.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: transfer not found
+    IdempotencyConflict:
+      description: Same sender and idempotency key already used for different transfer data.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: idempotency key conflict
+    InsufficientFunds:
+      description: Sender account does not have enough funds to make the transfer.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: insufficient funds
+    UnsupportedMediaType:
+      description: Missing, duplicated, or non-JSON `Content-Type` header for transfer creation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Content-Type must be application/json
+    RequestTooLarge:
+      description: Transfer JSON request body exceeds the server's 64 KiB limit.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: request body too large
+    InternalError:
+      description: Unexpected internal error; implementation details are not exposed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: internal server error
+    ServiceUnavailable:
+      description: |-
+        The API key or authorization account scope is not configured. Normal
+        application startup validates these settings; this response is a
+        fail-closed defense-in-depth behavior.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: service unavailable

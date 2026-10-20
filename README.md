@@ -64,6 +64,21 @@ The write path runs a database transaction and locks accounts before changing ba
 
 History defaults to `page=1` and `per_page=10`; `per_page` is capped at **100**. History results are ordered newest first, with `id` as a tie-breaker. Unauthorized access to a transfer detail is returned as `404` to avoid disclosing whether a different account's transfer exists.
 
+## OpenAPI Specification
+
+The REST API is documented using OpenAPI 3.1.
+
+See the [OpenAPI Specification](docs/openapi.yaml) for:
+
+- Authentication and account-scoped authorization
+- Request and response schemas
+- Transfer idempotency behavior
+- Transaction history pagination
+- HTTP error responses
+
+The specification can be opened with OpenAPI-compatible
+documentation tools such as Swagger UI or Redoc.
+
 ### Create a transfer
 
 Replace the example account IDs with IDs from your local database:
