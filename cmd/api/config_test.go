@@ -106,3 +106,27 @@ func TestLoadConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadConfigCustomListenAddress(t *testing.T) {
+	env := map[string]string{
+		"DATABASE_URL":   "postgres://localhost/test",
+		"API_KEY":        "local-test-secret",
+		"API_ACCOUNT_ID": "7",
+		"LISTEN_ADDRESS": "0.0.0.0:8080",
+	}
+
+	cfg, err := loadConfig(func(key string) string {
+		return env[key]
+	})
+
+	if err != nil {
+		t.Fatalf("loadConfig() error = %v", err)
+	}
+
+	if cfg.ListenAddress != "0.0.0.0:8080" {
+		t.Errorf(
+			"ListenAddress = %q, want 0.0.0.0:8080",
+			cfg.ListenAddress,
+		)
+	}
+}

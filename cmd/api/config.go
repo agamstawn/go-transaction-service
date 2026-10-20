@@ -18,6 +18,11 @@ type config struct {
 func loadConfig(
 	getenv func(string) string,
 ) (config, error) {
+	listenAddress := strings.TrimSpace(getenv("LISTEN_ADDRESS"))
+
+	if listenAddress == "" {
+		listenAddress = "127.0.0.1:8080"
+	}
 
 	if getenv == nil {
 		return config{}, errors.New(
@@ -58,7 +63,7 @@ func loadConfig(
 		DatabaseURL:   databaseURL,
 		APIKey:        apiKey,
 		APIAccountID:  accountID,
-		ListenAddress: "127.0.0.1:8080",
+		ListenAddress: listenAddress,
 	}, nil
 
 }
