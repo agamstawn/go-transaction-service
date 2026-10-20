@@ -86,6 +86,8 @@ func apiKeyMiddleware(
 ) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
 			// Fail closed when the server is not configured.
 			if expectedKey == "" {
 				writeAuthError(
