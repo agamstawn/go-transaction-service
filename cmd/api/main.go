@@ -75,10 +75,13 @@ func main() {
 		transferProcessor,
 	)
 
+	transferRepository := postgres.NewTransferRepository(db)
+
 	// 6. Configure HTTP routes and authentication.
 	router := newAppRouter(
 		accountRepository,
 		transferService,
+		transferRepository,
 		cfg.APIKey,
 		cfg.APIAccountID,
 	)

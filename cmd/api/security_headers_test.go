@@ -33,6 +33,7 @@ func TestProtectedRoutesSecurityHeaders(t *testing.T) {
 	router := newAppRouter(
 		reader,
 		executor,
+		&stubTransferReader{},
 		"local-test-secret",
 		7,
 	)

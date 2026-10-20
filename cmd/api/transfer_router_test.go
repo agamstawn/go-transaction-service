@@ -78,6 +78,7 @@ func TestTransferRouteAPIKeyProtection(t *testing.T) {
 			router := newAppRouter(
 				&stubAccountReader{},
 				executor,
+				&stubTransferReader{},
 				"local-test-secret",
 				1,
 			)
@@ -185,6 +186,7 @@ func TestTransferRouteAuthorization(t *testing.T) {
 			router := newAppRouter(
 				&stubAccountReader{},
 				executor,
+				&stubTransferReader{},
 				"local-test-secret",
 				7,
 			)

@@ -12,34 +12,35 @@ import (
 )
 
 // newAppRouter configures the application HTTP routes.
+// newAppRouter configures the application HTTP routes.
 func newAppRouter(
 	accountReader httpapi.AccountReader,
 	transferExecutor httpapi.TransferExecutor,
+	transferReader httpapi.TransferReader,
 	apiKey string,
 	authorizedAccountID int64,
 ) http.Handler {
-
 	mux := http.NewServeMux()
 
-	// Public health endpoint.
+	// 1. Public health endpoint.
 	mux.Handle(
 		"GET /healthz",
 		newRouter(),
 	)
 
-	// Apply account authorization.
+	// 2. Apply account-scoped authorization.
 	protectedAccountReader := scopedAccountReader{
 		reader:              accountReader,
 		authorizedAccountID: authorizedAccountID,
 	}
 
-	// Apply transfer authorization.
+	// 3. Apply transfer source-account authorization.
 	protectedTransferExecutor := scopedTransferExecutor{
 		executor:            transferExecutor,
 		authorizedAccountID: authorizedAccountID,
 	}
 
-	// Protected account endpoint.
+	// 4. Protected account details endpoint.
 	mux.Handle(
 		"GET /v1/accounts/{id}",
 		apiKeyMiddleware(
@@ -48,12 +49,24 @@ func newAppRouter(
 		),
 	)
 
-	// Protected transfer endpoint.
+	// 5. Protected transfer creation endpoint.
 	mux.Handle(
 		"POST /v1/transfers",
 		apiKeyMiddleware(
 			apiKey,
 			httpapi.NewTransferHandler(protectedTransferExecutor),
+		),
+	)
+
+	// 6. Protected transfer details endpoint.
+	mux.Handle(
+		"GET /v1/transfers/{id}",
+		apiKeyMiddleware(
+			apiKey,
+			httpapi.NewTransferDetailsHandler(
+				transferReader,
+				authorizedAccountID,
+			),
 		),
 	)
 
